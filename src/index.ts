@@ -1,11 +1,8 @@
-import { createLogger } from "@xmer/consumer-shared";
+import { type LogLevel, createLogger } from "@xmer/consumer-shared";
 import { connect } from "amqplib";
 import { loadConfig } from "./config/config.js";
 import { DatabaseManager } from "./database/database.js";
-import {
-	type GraphQLServerInstance,
-	createGraphQLServer,
-} from "./graphql/index.js";
+import { createGraphQLServer } from "./graphql/index.js";
 import { QbittorrentPublisher } from "./publishers/qbittorrent.publisher.js";
 import { GamesRepository } from "./repositories/games.repository.js";
 
@@ -15,12 +12,10 @@ async function main(): Promise<void> {
 	const config = loadConfig();
 
 	const logger = createLogger({
-		level: config.logLevel,
-		lokiHost: config.lokiHost ?? undefined,
-		labels: {
-			job: "fitgirl-subgraph",
-			environment: process.env.NODE_ENV || "development",
-		},
+		level: config.logLevel as LogLevel,
+		loki: config.lokiHost ? { host: config.lokiHost } : undefined,
+		job: "fitgirl-subgraph",
+		environment: process.env.NODE_ENV || "development",
 	});
 
 	logger.info("Starting fitgirl-subgraph service");

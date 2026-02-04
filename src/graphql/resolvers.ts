@@ -1,5 +1,5 @@
 import { withFilter } from "graphql-subscriptions";
-import { GameNotFoundError, NoMagnetLinkError } from "../errors/index.js";
+import { GameNotFoundError } from "../errors/index.js";
 import type {
 	DownloadProgressMessage,
 	DownloadStatus,

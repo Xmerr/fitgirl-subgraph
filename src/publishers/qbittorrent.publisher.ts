@@ -26,7 +26,9 @@ export class QbittorrentPublisher
 			category: "games",
 		};
 
-		await this.publish(ROUTING_KEY, message);
-		this.logger.info("Download request published", { id });
+		await this.publish(
+			ROUTING_KEY,
+			message as unknown as Record<string, unknown>,
+		);
 	}
 }
