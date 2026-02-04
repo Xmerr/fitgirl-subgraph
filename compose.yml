@@ -1,0 +1,27 @@
+services:
+  fitgirl-subgraph:
+    image: xmer/fitgirl-subgraph:latest
+    container_name: fitgirl-subgraph
+    restart: unless-stopped
+    environment:
+      - DATABASE_PATH=/app/data/fitgirl.db
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - GRAPHQL_PORT=4004
+      - GRAPHQL_WS_PORT=4005
+      - LOKI_HOST=${LOKI_HOST:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - fitgirl-data:/app/data
+    ports:
+      - "4004:4004"
+      - "4005:4005"
+    networks:
+      - dashboard
+
+volumes:
+  fitgirl-data:
+    external: true
+
+networks:
+  dashboard:
+    external: true
