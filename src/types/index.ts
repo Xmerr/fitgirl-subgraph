@@ -1,6 +1,6 @@
-import type { Sql } from "postgres";
 import type { ILogger, IPublisher } from "@xmer/consumer-shared";
 import type { Channel } from "amqplib";
+import type { Sql } from "postgres";
 
 export interface GameRecord {
 	id: number;

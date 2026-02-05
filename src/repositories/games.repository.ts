@@ -1,5 +1,5 @@
-import type { Sql } from "postgres";
 import type { ILogger } from "@xmer/consumer-shared";
+import type { Sql } from "postgres";
 import type {
 	DownloadStatus,
 	GameFilter,
