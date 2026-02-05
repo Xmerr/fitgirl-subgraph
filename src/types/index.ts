@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Sql } from "postgres";
 import type { ILogger, IPublisher } from "@xmer/consumer-shared";
 import type { Channel } from "amqplib";
 
@@ -82,7 +82,7 @@ export interface IQbittorrentPublisher extends IPublisher {
 }
 
 export interface GamesRepositoryOptions {
-	db: Database;
+	sql: Sql;
 	logger: ILogger;
 }
 

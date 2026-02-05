@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { Sql } from "postgres";
 import type { ILogger } from "@xmer/consumer-shared";
 import type {
 	DownloadStatus,
@@ -12,11 +12,11 @@ import type {
 } from "../types/index.js";
 
 export class GamesRepository implements IGamesRepository {
-	private readonly db: Database;
+	private readonly sql: Sql;
 	private readonly logger: ILogger;
 
 	constructor(options: GamesRepositoryOptions) {
-		this.db = options.db;
+		this.sql = options.sql;
 		this.logger = options.logger.child({ component: "GamesRepository" });
 	}
 
@@ -27,38 +27,41 @@ export class GamesRepository implements IGamesRepository {
 		const offset = pagination?.offset ?? 0;
 		const limit = pagination?.limit ?? 20;
 
-		let whereClause = "1=1";
+		// Build dynamic query conditions
+		const conditions: string[] = ["1=1"];
 		const params: (string | number)[] = [];
+		let paramIndex = 1;
 
 		if (filter?.search) {
-			whereClause +=
-				" AND (game_name LIKE ? OR title_raw LIKE ? OR steam_name LIKE ? OR corrected_name LIKE ?)";
 			const searchPattern = `%${filter.search}%`;
+			conditions.push(
+				`(game_name ILIKE $${paramIndex} OR title_raw ILIKE $${paramIndex + 1} OR steam_name ILIKE $${paramIndex + 2} OR corrected_name ILIKE $${paramIndex + 3})`,
+			);
 			params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+			paramIndex += 4;
 		}
 
 		if (filter?.downloadStatus) {
 			const statusCondition = this.getDownloadStatusCondition(
 				filter.downloadStatus,
 			);
-			whereClause += ` AND ${statusCondition}`;
+			conditions.push(statusCondition);
 		}
 
+		const whereClause = conditions.join(" AND ");
+
 		// Count total
-		const countSql = `SELECT COUNT(*) as count FROM games WHERE ${whereClause}`;
-		const countStmt = this.db.prepare(countSql);
-		const countResult = countStmt.get(...params) as { count: number };
-		const totalCount = countResult.count;
+		const countResult = await this.sql.unsafe<[{ count: string }]>(
+			`SELECT COUNT(*) as count FROM games WHERE ${whereClause}`,
+			params,
+		);
+		const totalCount = Number(countResult[0].count);
 
 		// Fetch items sorted by pub_date descending
-		const sql = `
-			SELECT * FROM games
-			WHERE ${whereClause}
-			ORDER BY pub_date DESC
-			LIMIT ? OFFSET ?
-		`;
-		const stmt = this.db.prepare(sql);
-		const items = stmt.all(...params, limit, offset) as GameRecord[];
+		const items = await this.sql.unsafe<GameRecord[]>(
+			`SELECT * FROM games WHERE ${whereClause} ORDER BY pub_date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+			[...params, limit, offset],
+		);
 
 		return {
 			items,
@@ -68,86 +71,78 @@ export class GamesRepository implements IGamesRepository {
 	}
 
 	async findById(id: number): Promise<GameRecord | null> {
-		const sql = "SELECT * FROM games WHERE id = ?";
-		const stmt = this.db.prepare(sql);
-		return stmt.get(id) as GameRecord | null;
+		const [result] = await this.sql<GameRecord[]>`
+			SELECT * FROM games WHERE id = ${id}
+		`;
+		return result ?? null;
 	}
 
 	async findByGuid(guid: string): Promise<GameRecord | null> {
-		const sql = "SELECT * FROM games WHERE guid = ?";
-		const stmt = this.db.prepare(sql);
-		return stmt.get(guid) as GameRecord | null;
+		const [result] = await this.sql<GameRecord[]>`
+			SELECT * FROM games WHERE guid = ${guid}
+		`;
+		return result ?? null;
 	}
 
 	async findActiveDownloads(): Promise<GameRecord[]> {
-		const sql = `
+		return this.sql<GameRecord[]>`
 			SELECT * FROM games
 			WHERE download_started_at IS NOT NULL
 			AND download_completed_at IS NULL
 			ORDER BY download_started_at DESC
 		`;
-		const stmt = this.db.prepare(sql);
-		return stmt.all() as GameRecord[];
 	}
 
 	async findRecent(limit: number): Promise<GameRecord[]> {
-		const sql = `
+		return this.sql<GameRecord[]>`
 			SELECT * FROM games
 			ORDER BY pub_date DESC
-			LIMIT ?
+			LIMIT ${limit}
 		`;
-		const stmt = this.db.prepare(sql);
-		return stmt.all(limit) as GameRecord[];
 	}
 
 	async updateRating(
 		id: number,
 		rating: RatingType | null,
 	): Promise<GameRecord | null> {
-		const sql = `
+		const [result] = await this.sql<GameRecord[]>`
 			UPDATE games
-			SET rating = ?, updated_at = datetime('now')
-			WHERE id = ?
+			SET rating = ${rating}, updated_at = NOW()
+			WHERE id = ${id}
 			RETURNING *
 		`;
-		const stmt = this.db.prepare(sql);
-		const result = stmt.get(rating, id) as GameRecord | null;
 
 		if (result) {
 			this.logger.debug("Rating updated", { id, rating });
 		}
 
-		return result;
+		return result ?? null;
 	}
 
 	async updateCorrectedName(
 		id: number,
 		correctedName: string,
 	): Promise<GameRecord | null> {
-		const sql = `
+		const [result] = await this.sql<GameRecord[]>`
 			UPDATE games
-			SET corrected_name = ?, updated_at = datetime('now')
-			WHERE id = ?
+			SET corrected_name = ${correctedName}, updated_at = NOW()
+			WHERE id = ${id}
 			RETURNING *
 		`;
-		const stmt = this.db.prepare(sql);
-		const result = stmt.get(correctedName, id) as GameRecord | null;
 
 		if (result) {
 			this.logger.debug("Corrected name updated", { id, correctedName });
 		}
 
-		return result;
+		return result ?? null;
 	}
 
 	async updateDownloadStarted(guid: string): Promise<void> {
-		const sql = `
+		await this.sql`
 			UPDATE games
-			SET download_started_at = datetime('now'), updated_at = datetime('now')
-			WHERE guid = ?
+			SET download_started_at = NOW(), updated_at = NOW()
+			WHERE guid = ${guid}
 		`;
-		const stmt = this.db.prepare(sql);
-		stmt.run(guid);
 		this.logger.debug("Download started", { guid });
 	}
 

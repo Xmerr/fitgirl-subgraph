@@ -22,7 +22,7 @@ async function main(): Promise<void> {
 
 	// Initialize database
 	const databaseManager = new DatabaseManager({
-		path: config.databasePath,
+		connectionString: config.postgresUrl,
 		logger,
 	});
 	await databaseManager.initialize();
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
 
 	// Create repositories and publishers
 	const gamesRepository = new GamesRepository({
-		db: databaseManager.getDb(),
+		sql: databaseManager.getSql(),
 		logger,
 	});
 
@@ -66,7 +66,7 @@ async function main(): Promise<void> {
 		await graphqlServer.stop();
 		await channel.close();
 		await connection.close();
-		databaseManager.close();
+		await databaseManager.close();
 
 		logger.info("Shutdown complete");
 		process.exit(0);

@@ -1,60 +1,64 @@
-import { Database } from "bun:sqlite";
 import type { ILogger } from "@xmer/consumer-shared";
+import postgres, { type Sql } from "postgres";
 import { DatabaseError } from "../errors/index.js";
 
 export interface DatabaseManagerOptions {
-	path: string;
+	connectionString: string;
 	logger: ILogger;
 }
 
 export interface IDatabaseManager {
 	initialize(): Promise<void>;
-	getDb(): Database;
-	close(): void;
+	getSql(): Sql;
+	close(): Promise<void>;
 }
 
 export class DatabaseManager implements IDatabaseManager {
-	private readonly path: string;
+	private readonly connectionString: string;
 	private readonly logger: ILogger;
-	private db: Database | null = null;
+	private sql: Sql | null = null;
 
 	constructor(options: DatabaseManagerOptions) {
-		this.path = options.path;
+		this.connectionString = options.connectionString;
 		this.logger = options.logger.child({ component: "DatabaseManager" });
 	}
 
 	async initialize(): Promise<void> {
 		try {
-			// Open with write access for mutations
-			this.db = new Database(this.path, { create: false });
-			this.db.exec("PRAGMA journal_mode = WAL");
-			this.db.exec("PRAGMA foreign_keys = ON");
+			this.sql = postgres(this.connectionString, {
+				max: 10,
+				idle_timeout: 20,
+				connect_timeout: 10,
+			});
 
-			this.logger.info("Database initialized", { path: this.path });
+			// Test connection
+			await this.sql`SELECT 1`;
+
+			this.logger.info("Database initialized");
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			throw new DatabaseError(
 				`Failed to initialize database: ${message}`,
 				"initialize",
-				{ path: this.path },
+				{ connectionString: this.connectionString.replace(/:[^@]+@/, ":***@") },
 			);
 		}
 	}
 
-	getDb(): Database {
-		if (!this.db) {
+	getSql(): Sql {
+		if (!this.sql) {
 			throw new DatabaseError(
 				"Database not initialized. Call initialize() first.",
-				"getDb",
+				"getSql",
 			);
 		}
-		return this.db;
+		return this.sql;
 	}
 
-	close(): void {
-		if (this.db) {
-			this.db.close();
-			this.db = null;
+	async close(): Promise<void> {
+		if (this.sql) {
+			await this.sql.end();
+			this.sql = null;
 			this.logger.info("Database closed");
 		}
 	}

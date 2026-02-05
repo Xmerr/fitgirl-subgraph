@@ -1,5 +1,5 @@
 export interface Config {
-	databasePath: string;
+	postgresUrl: string;
 	rabbitmqUrl: string;
 	graphqlPort: number;
 	graphqlWsPort: number;
@@ -8,11 +8,11 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
-	const databasePath = process.env.DATABASE_PATH;
+	const postgresUrl = process.env.POSTGRES_URL;
 	const rabbitmqUrl = process.env.RABBITMQ_URL;
 
-	if (!databasePath) {
-		throw new Error("DATABASE_PATH environment variable is required");
+	if (!postgresUrl) {
+		throw new Error("POSTGRES_URL environment variable is required");
 	}
 
 	if (!rabbitmqUrl) {
@@ -20,7 +20,7 @@ export function loadConfig(): Config {
 	}
 
 	return {
-		databasePath,
+		postgresUrl,
 		rabbitmqUrl,
 		graphqlPort: Number.parseInt(process.env.GRAPHQL_PORT || "4004", 10),
 		graphqlWsPort: Number.parseInt(process.env.GRAPHQL_WS_PORT || "4005", 10),
