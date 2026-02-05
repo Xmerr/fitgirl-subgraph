@@ -95,9 +95,21 @@ describe("GamesRepository", () => {
 		it("should return all games sorted by pub_date descending", async () => {
 			// Arrange
 			const games = [
-				createMockGame({ id: 2, guid: "game-2", pub_date: "2024-01-03T00:00:00Z" }),
-				createMockGame({ id: 3, guid: "game-3", pub_date: "2024-01-02T00:00:00Z" }),
-				createMockGame({ id: 1, guid: "game-1", pub_date: "2024-01-01T00:00:00Z" }),
+				createMockGame({
+					id: 2,
+					guid: "game-2",
+					pub_date: "2024-01-03T00:00:00Z",
+				}),
+				createMockGame({
+					id: 3,
+					guid: "game-3",
+					pub_date: "2024-01-02T00:00:00Z",
+				}),
+				createMockGame({
+					id: 1,
+					guid: "game-1",
+					pub_date: "2024-01-01T00:00:00Z",
+				}),
 			];
 			mockSql.unsafe.mockResolvedValueOnce([{ count: "3" }]);
 			mockSql.unsafe.mockResolvedValueOnce(games);
@@ -114,7 +126,13 @@ describe("GamesRepository", () => {
 
 		it("should filter by search term", async () => {
 			// Arrange
-			const games = [createMockGame({ id: 1, guid: "game-1", game_name: "Cyberpunk 2077" })];
+			const games = [
+				createMockGame({
+					id: 1,
+					guid: "game-1",
+					game_name: "Cyberpunk 2077",
+				}),
+			];
 			mockSql.unsafe.mockResolvedValueOnce([{ count: "1" }]);
 			mockSql.unsafe.mockResolvedValueOnce(games);
 
@@ -129,7 +147,13 @@ describe("GamesRepository", () => {
 
 		it("should filter by download status AVAILABLE", async () => {
 			// Arrange
-			const games = [createMockGame({ id: 1, guid: "game-1", magnet_link: "magnet:?xt=..." })];
+			const games = [
+				createMockGame({
+					id: 1,
+					guid: "game-1",
+					magnet_link: "magnet:?xt=...",
+				}),
+			];
 			mockSql.unsafe.mockResolvedValueOnce([{ count: "1" }]);
 			mockSql.unsafe.mockResolvedValueOnce(games);
 
@@ -250,7 +274,12 @@ describe("GamesRepository", () => {
 	describe("findRecent", () => {
 		it("should return most recent games", async () => {
 			// Arrange
-			const games = [createMockGame({ guid: "new-game", pub_date: "2024-01-10T00:00:00Z" })];
+			const games = [
+				createMockGame({
+					guid: "new-game",
+					pub_date: "2024-01-10T00:00:00Z",
+				}),
+			];
 			mockSql.mockResolvedValueOnce(games);
 
 			// Act
@@ -265,7 +294,11 @@ describe("GamesRepository", () => {
 	describe("updateRating", () => {
 		it("should update rating to upvote", async () => {
 			// Arrange
-			const game = createMockGame({ id: 1, guid: "rating-test", rating: "upvote" });
+			const game = createMockGame({
+				id: 1,
+				guid: "rating-test",
+				rating: "upvote",
+			});
 			mockSql.mockResolvedValueOnce([game]);
 
 			// Act
@@ -278,7 +311,11 @@ describe("GamesRepository", () => {
 
 		it("should update rating to downvote", async () => {
 			// Arrange
-			const game = createMockGame({ id: 2, guid: "rating-test-2", rating: "downvote" });
+			const game = createMockGame({
+				id: 2,
+				guid: "rating-test-2",
+				rating: "downvote",
+			});
 			mockSql.mockResolvedValueOnce([game]);
 
 			// Act
@@ -291,7 +328,11 @@ describe("GamesRepository", () => {
 
 		it("should clear rating when set to null", async () => {
 			// Arrange
-			const game = createMockGame({ id: 1, guid: "clear-rating-test", rating: null });
+			const game = createMockGame({
+				id: 1,
+				guid: "clear-rating-test",
+				rating: null,
+			});
 			mockSql.mockResolvedValueOnce([game]);
 
 			// Act
