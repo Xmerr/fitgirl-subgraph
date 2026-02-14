@@ -4,7 +4,7 @@ services:
     container_name: fitgirl-subgraph
     restart: unless-stopped
     environment:
-      - DATABASE_PATH=/app/data/fitgirl.db
+      - POSTGRES_URL=${POSTGRES_URL}
       - RABBITMQ_URL=${RABBITMQ_URL}
       - GRAPHQL_PORT=4004
       - GRAPHQL_WS_PORT=4005
