@@ -60,7 +60,7 @@ function mapGameToGraphQL(game: GameRecord) {
 					reviewDesc: game.steam_review_desc,
 					totalPositive: game.steam_total_positive,
 					totalNegative: game.steam_total_negative,
-				steamRefreshedAt: game.steam_refreshed_at,
+					steamRefreshedAt: game.steam_refreshed_at,
 				}
 			: null,
 	};

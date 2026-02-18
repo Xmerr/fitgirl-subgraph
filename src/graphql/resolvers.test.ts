@@ -313,9 +313,7 @@ describe("resolvers", () => {
 		it("should publish refresh message with corrected name", async () => {
 			(
 				mockGamesRepository.findById as ReturnType<typeof mock>
-			).mockResolvedValue(
-				createMockGame({ corrected_name: "Corrected Game" }),
-			);
+			).mockResolvedValue(createMockGame({ corrected_name: "Corrected Game" }));
 
 			const result = await resolvers.Mutation.refreshSteam(
 				null,
@@ -338,11 +336,7 @@ describe("resolvers", () => {
 				createMockGame({ corrected_name: null, steam_name: "Steam Name" }),
 			);
 
-			await resolvers.Mutation.refreshSteam(
-				null,
-				{ gameId: "1" },
-				context(),
-			);
+			await resolvers.Mutation.refreshSteam(null, { gameId: "1" }, context());
 
 			expect(mockFitgirlPublisher.refreshSteam).toHaveBeenCalledWith(
 				1,
@@ -357,11 +351,7 @@ describe("resolvers", () => {
 				createMockGame({ corrected_name: null, steam_name: null }),
 			);
 
-			await resolvers.Mutation.refreshSteam(
-				null,
-				{ gameId: "1" },
-				context(),
-			);
+			await resolvers.Mutation.refreshSteam(null, { gameId: "1" }, context());
 
 			expect(mockFitgirlPublisher.refreshSteam).toHaveBeenCalledWith(
 				1,
@@ -375,11 +365,7 @@ describe("resolvers", () => {
 			).mockResolvedValue(null);
 
 			await expect(
-				resolvers.Mutation.refreshSteam(
-					null,
-					{ gameId: "999" },
-					context(),
-				),
+				resolvers.Mutation.refreshSteam(null, { gameId: "999" }, context()),
 			).rejects.toThrow("Game not found: 999");
 		});
 	});
