@@ -31,6 +31,7 @@ export interface GameRecord {
 	steam_total_positive: number | null;
 	steam_total_negative: number | null;
 	rating: "upvote" | "downvote" | null;
+	steam_refreshed_at: string | null;
 }
 
 export type DownloadStatus =
@@ -96,6 +97,30 @@ export interface QbittorrentAddDownload {
 	id: string;
 	magnetLink: string;
 	category: "games";
+}
+
+export interface IFitGirlPublisher extends IPublisher {
+	resetPipeline(source: string, reason?: string): Promise<void>;
+	refreshSteam(gameId: number, correctedName: string): Promise<void>;
+}
+
+export interface FitGirlPublisherOptions {
+	channel: Channel;
+	exchange: string;
+	logger: ILogger;
+}
+
+export interface SteamRefreshMessage {
+	gameId: number;
+	correctedName: string;
+	timestamp: string;
+}
+
+export interface ResetMessage {
+	source: string;
+	timestamp: string;
+	target: "all";
+	reason?: string;
 }
 
 export interface DownloadProgressMessage {

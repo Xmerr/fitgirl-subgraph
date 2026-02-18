@@ -3,10 +3,12 @@ import { connect } from "amqplib";
 import { loadConfig } from "./config/config.js";
 import { DatabaseManager } from "./database/database.js";
 import { createGraphQLServer } from "./graphql/index.js";
+import { FitGirlPublisher } from "./publishers/fitgirl.publisher.js";
 import { QbittorrentPublisher } from "./publishers/qbittorrent.publisher.js";
 import { GamesRepository } from "./repositories/games.repository.js";
 
 const QBITTORRENT_EXCHANGE = "qbittorrent";
+const FITGIRL_EXCHANGE = "fitgirl";
 
 async function main(): Promise<void> {
 	const config = loadConfig();
@@ -31,8 +33,11 @@ async function main(): Promise<void> {
 	const connection = await connect(config.rabbitmqUrl);
 	const channel = await connection.createChannel();
 
-	// Assert qbittorrent exchange
+	// Assert exchanges
 	await channel.assertExchange(QBITTORRENT_EXCHANGE, "topic", {
+		durable: true,
+	});
+	await channel.assertExchange(FITGIRL_EXCHANGE, "topic", {
 		durable: true,
 	});
 
@@ -48,12 +53,19 @@ async function main(): Promise<void> {
 		logger,
 	});
 
+	const fitgirlPublisher = new FitGirlPublisher({
+		channel,
+		exchange: FITGIRL_EXCHANGE,
+		logger,
+	});
+
 	// Create and start GraphQL server
 	const graphqlServer = createGraphQLServer({
 		port: config.graphqlPort,
 		wsPort: config.graphqlWsPort,
 		gamesRepository,
 		qbittorrentPublisher,
+		fitgirlPublisher,
 		logger,
 	});
 

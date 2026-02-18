@@ -5,6 +5,7 @@ import type {
 	DownloadStatus,
 	GameFilter,
 	GameRecord,
+	IFitGirlPublisher,
 	IGamesRepository,
 	IQbittorrentPublisher,
 	PaginationInput,
@@ -15,6 +16,7 @@ import { EVENTS, pubsub } from "./pubsub.js";
 export interface GraphQLContext {
 	gamesRepository: IGamesRepository;
 	qbittorrentPublisher: IQbittorrentPublisher;
+	fitgirlPublisher: IFitGirlPublisher;
 }
 
 function getDownloadStatus(game: GameRecord): DownloadStatus {
@@ -58,6 +60,7 @@ function mapGameToGraphQL(game: GameRecord) {
 					reviewDesc: game.steam_review_desc,
 					totalPositive: game.steam_total_positive,
 					totalNegative: game.steam_total_negative,
+				steamRefreshedAt: game.steam_refreshed_at,
 				}
 			: null,
 	};
@@ -197,6 +200,43 @@ export const resolvers = {
 			}
 
 			return mapGameToGraphQL(game);
+		},
+
+		refreshSteam: async (
+			_parent: unknown,
+			args: { gameId: string },
+			context: GraphQLContext,
+		) => {
+			const game = await context.gamesRepository.findById(
+				Number.parseInt(args.gameId, 10),
+			);
+
+			if (!game) {
+				throw new GameNotFoundError(args.gameId);
+			}
+
+			const displayName =
+				game.corrected_name || game.steam_name || game.game_name;
+
+			await context.fitgirlPublisher.refreshSteam(game.id, displayName);
+
+			return {
+				success: true,
+				message: "Steam refresh initiated",
+			};
+		},
+
+		resetPipeline: async (
+			_parent: unknown,
+			args: { reason?: string },
+			context: GraphQLContext,
+		) => {
+			await context.fitgirlPublisher.resetPipeline("dashboard", args.reason);
+
+			return {
+				success: true,
+				message: "Pipeline reset initiated",
+			};
 		},
 	},
 

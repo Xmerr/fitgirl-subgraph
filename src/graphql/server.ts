@@ -7,6 +7,7 @@ import type { Disposable } from "graphql-ws";
 import { useServer } from "graphql-ws/lib/use/ws";
 import { WebSocketServer } from "ws";
 import type {
+	IFitGirlPublisher,
 	IGamesRepository,
 	IQbittorrentPublisher,
 } from "../types/index.js";
@@ -19,6 +20,7 @@ export interface GraphQLServerOptions {
 	wsPort: number;
 	gamesRepository: IGamesRepository;
 	qbittorrentPublisher: IQbittorrentPublisher;
+	fitgirlPublisher: IFitGirlPublisher;
 	logger: ILogger;
 }
 
@@ -30,8 +32,14 @@ export interface GraphQLServerInstance {
 export function createGraphQLServer(
 	options: GraphQLServerOptions,
 ): GraphQLServerInstance {
-	const { port, wsPort, gamesRepository, qbittorrentPublisher, logger } =
-		options;
+	const {
+		port,
+		wsPort,
+		gamesRepository,
+		qbittorrentPublisher,
+		fitgirlPublisher,
+		logger,
+	} = options;
 	const graphqlLogger = logger.child({ component: "GraphQLServer" });
 
 	const schema = buildSubgraphSchema({
@@ -62,6 +70,7 @@ export function createGraphQLServer(
 					context: (): GraphQLContext => ({
 						gamesRepository,
 						qbittorrentPublisher,
+						fitgirlPublisher,
 					}),
 					onConnect: () => {
 						graphqlLogger.debug("WebSocket client connected");
@@ -87,7 +96,11 @@ export function createGraphQLServer(
 			// Start Apollo HTTP server
 			const { url } = await startStandaloneServer(apolloServer, {
 				listen: { port },
-				context: async () => ({ gamesRepository, qbittorrentPublisher }),
+				context: async () => ({
+					gamesRepository,
+					qbittorrentPublisher,
+					fitgirlPublisher,
+				}),
 			});
 			apolloUrl = url;
 

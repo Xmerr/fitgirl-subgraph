@@ -41,6 +41,16 @@ export const typeDefs = gql`
 		Update corrected name for a game
 		"""
 		updateGameName(gameId: ID!, correctedName: String!): Game!
+
+		"""
+		Refresh Steam data for a game using its corrected name
+		"""
+		refreshSteam(gameId: ID!): RefreshSteamResult!
+
+		"""
+		Reset the FitGirl pipeline (clears all games and re-fetches from RSS)
+		"""
+		resetPipeline(reason: String): ResetResult!
 	}
 
 	type Subscription {
@@ -107,6 +117,7 @@ export const typeDefs = gql`
 		reviewDesc: String
 		totalPositive: Int
 		totalNegative: Int
+		steamRefreshedAt: String
 	}
 
 	"""
@@ -178,5 +189,21 @@ export const typeDefs = gql`
 		downloadSpeed: Float!
 		eta: Int!
 		state: String!
+	}
+
+	"""
+	Result of refreshing Steam data
+	"""
+	type RefreshSteamResult {
+		success: Boolean!
+		message: String
+	}
+
+	"""
+	Result of resetting the pipeline
+	"""
+	type ResetResult {
+		success: Boolean!
+		message: String
 	}
 `;

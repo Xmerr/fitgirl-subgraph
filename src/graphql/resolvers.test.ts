@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type {
 	GameRecord,
 	GamesConnection,
+	IFitGirlPublisher,
 	IGamesRepository,
 	IQbittorrentPublisher,
 } from "../types/index.js";
@@ -36,12 +37,14 @@ const createMockGame = (overrides: Partial<GameRecord> = {}): GameRecord => ({
 	steam_total_positive: 1000,
 	steam_total_negative: 100,
 	rating: null,
+	steam_refreshed_at: null,
 	...overrides,
 });
 
 describe("resolvers", () => {
 	let mockGamesRepository: IGamesRepository;
 	let mockQbittorrentPublisher: IQbittorrentPublisher;
+	let mockFitgirlPublisher: IFitGirlPublisher;
 
 	beforeEach(() => {
 		mockGamesRepository = {
@@ -70,11 +73,19 @@ describe("resolvers", () => {
 			shutdown: mock(() => Promise.resolve()),
 			addDownload: mock(() => Promise.resolve()),
 		};
+
+		mockFitgirlPublisher = {
+			initialize: mock(() => Promise.resolve()),
+			shutdown: mock(() => Promise.resolve()),
+			resetPipeline: mock(() => Promise.resolve()),
+			refreshSteam: mock(() => Promise.resolve()),
+		};
 	});
 
 	const context = () => ({
 		gamesRepository: mockGamesRepository,
 		qbittorrentPublisher: mockQbittorrentPublisher,
+		fitgirlPublisher: mockFitgirlPublisher,
 	});
 
 	describe("Query.games", () => {
@@ -295,6 +306,112 @@ describe("resolvers", () => {
 					context(),
 				),
 			).rejects.toThrow("Game not found: 999");
+		});
+	});
+
+	describe("Mutation.refreshSteam", () => {
+		it("should publish refresh message with corrected name", async () => {
+			(
+				mockGamesRepository.findById as ReturnType<typeof mock>
+			).mockResolvedValue(
+				createMockGame({ corrected_name: "Corrected Game" }),
+			);
+
+			const result = await resolvers.Mutation.refreshSteam(
+				null,
+				{ gameId: "1" },
+				context(),
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.message).toBe("Steam refresh initiated");
+			expect(mockFitgirlPublisher.refreshSteam).toHaveBeenCalledWith(
+				1,
+				"Corrected Game",
+			);
+		});
+
+		it("should fall back to steam name when no corrected name", async () => {
+			(
+				mockGamesRepository.findById as ReturnType<typeof mock>
+			).mockResolvedValue(
+				createMockGame({ corrected_name: null, steam_name: "Steam Name" }),
+			);
+
+			await resolvers.Mutation.refreshSteam(
+				null,
+				{ gameId: "1" },
+				context(),
+			);
+
+			expect(mockFitgirlPublisher.refreshSteam).toHaveBeenCalledWith(
+				1,
+				"Steam Name",
+			);
+		});
+
+		it("should fall back to game name when no corrected or steam name", async () => {
+			(
+				mockGamesRepository.findById as ReturnType<typeof mock>
+			).mockResolvedValue(
+				createMockGame({ corrected_name: null, steam_name: null }),
+			);
+
+			await resolvers.Mutation.refreshSteam(
+				null,
+				{ gameId: "1" },
+				context(),
+			);
+
+			expect(mockFitgirlPublisher.refreshSteam).toHaveBeenCalledWith(
+				1,
+				"Test Game",
+			);
+		});
+
+		it("should throw if game not found", async () => {
+			(
+				mockGamesRepository.findById as ReturnType<typeof mock>
+			).mockResolvedValue(null);
+
+			await expect(
+				resolvers.Mutation.refreshSteam(
+					null,
+					{ gameId: "999" },
+					context(),
+				),
+			).rejects.toThrow("Game not found: 999");
+		});
+	});
+
+	describe("Mutation.resetPipeline", () => {
+		it("should publish reset message and return success", async () => {
+			const result = await resolvers.Mutation.resetPipeline(
+				null,
+				{ reason: "Manual reset" },
+				context(),
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.message).toBe("Pipeline reset initiated");
+			expect(mockFitgirlPublisher.resetPipeline).toHaveBeenCalledWith(
+				"dashboard",
+				"Manual reset",
+			);
+		});
+
+		it("should publish reset message without reason", async () => {
+			const result = await resolvers.Mutation.resetPipeline(
+				null,
+				{},
+				context(),
+			);
+
+			expect(result.success).toBe(true);
+			expect(mockFitgirlPublisher.resetPipeline).toHaveBeenCalledWith(
+				"dashboard",
+				undefined,
+			);
 		});
 	});
 
